@@ -1,13 +1,13 @@
 import React, { FC } from 'react';
-import { Button } from '@dracula/dracula-ui';
+import { Button, ButtonProps } from '@dracula/dracula-ui';
 
 interface EstimateButtonProps {
-    buttonText: string;
+
 }
 
-const EstimateButton: FC<EstimateButtonProps> = (props) => {
+const EstimateButton: FC<ButtonProps & EstimateButtonProps> = (props) => {
     return (
-        <Button size="lg" variant="outline">{ props.buttonText }</Button>
+        <Button size="lg" variant="outline" color={props.color}>{ props.children }</Button>
     );
 }
 

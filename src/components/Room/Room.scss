@@ -1,0 +1,17 @@
+.estimate-buttons-container {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.results-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+
+    .left, .buttons {
+        display: flex;
+        flex-direction: column;
+    }
+}
