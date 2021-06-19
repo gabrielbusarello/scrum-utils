@@ -3,7 +3,7 @@ import { Table } from '@dracula/dracula-ui';
 
 const ResultsTable = () => {
     return (
-        <Table>
+        <Table color="green">
             <thead>
                 <tr>
                     <th className="drac-text drac-text-white">Name</th>
