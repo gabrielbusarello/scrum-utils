@@ -1,6 +1,6 @@
 import { Users } from "./User";
 
-interface Room {
+export interface Room {
     room: string;
     users: Users;
 }

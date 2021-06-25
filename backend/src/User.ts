@@ -1,8 +1,9 @@
-
+type Role = 'admin' | 'user';
 
 export interface User {
     username: string;
-    ws: any;
+    vote?: string | null;
+    role: Role;
 }
 
 export type Users = User[];
