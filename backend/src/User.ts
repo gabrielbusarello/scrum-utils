@@ -2,7 +2,7 @@ type Role = 'admin' | 'user';
 
 export interface User {
     username: string;
-    vote?: string | null;
+    vote?: number | null;
     role: Role;
 }
 

@@ -4,6 +4,7 @@ import * as WebSocket from 'ws';
 import * as Redis from 'ioredis';
 import { Room, Rooms } from './Room';
 import { User } from './User';
+import { Action, VoteMessage } from './VoteMessage';
 
 const redis = new Redis('localhost');
 const redisSub = new Redis('localhost');
@@ -43,6 +44,19 @@ const getRoomIndex = async (room: string): Promise<number> => {
     return rooms.findIndex((roomF) => roomF.room === room);
 }
 
+const getUserInRoom = async (room: string, username: string): Promise<boolean> => {
+    const roomFinded = await getRoom(room);
+
+    console.log(!!roomFinded?.users.find(user => user.username === username));
+    return !!roomFinded?.users.find(user => user.username === username);
+}
+
+const getUserRole = async (room: string, username: string): Promise<boolean> => {
+    const roomFinded = await getRoom(room);
+
+    return !!roomFinded?.users.find(user => user.username === username && user.role === 'admin');
+}
+
 const setRooms = async (rooms: Rooms): Promise<void> => {
     await redis.set('rooms', JSON.stringify(rooms));
 }
@@ -57,7 +71,7 @@ const setUserIntoRoom = async (roomIndex: number, username: string): Promise<voi
     await setRooms(rooms);
 }
 
-const setVote = async (room: string, username: string, vote: string): Promise<void> => {
+const setVote = async (room: string, username: string, vote: number): Promise<void> => {
     let rooms = await getRooms();
     const roomIndex = await getRoomIndex(room);
 
@@ -74,7 +88,44 @@ const setVote = async (room: string, username: string, vote: string): Promise<vo
     }
 };
 
-// const deleteVotes
+const toggleStatus = async (room: string): Promise<void> => {
+    let rooms = await getRooms();
+    const roomIndex = await getRoomIndex(room);
+
+    if (roomIndex > -1) {
+        rooms[roomIndex].status = rooms[roomIndex].status === 'hide' ? 'show' : 'hide';
+    }
+
+    await setRooms(rooms);
+};
+
+const deleteVotes = async (room: string): Promise<void> => {
+    let rooms = await getRooms();
+    const roomIndex = await getRoomIndex(room);
+
+    if (roomIndex > -1) {
+        rooms[roomIndex].users = rooms[roomIndex].users.map(user => {
+            user.vote = null;
+
+            return user;
+        });
+
+        rooms[roomIndex].status = 'hide';
+    }
+
+    await setRooms(rooms);
+};
+
+const clearRoom = async (room: string): Promise<void> => {
+    let rooms = await getRooms();
+    const roomIndex = await getRoomIndex(room);
+
+    if (roomIndex > -1) {
+        rooms[roomIndex].users = rooms[roomIndex].users.filter(user => user.role === 'admin');
+    }
+
+    await setRooms(rooms);
+};
 
 wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
     let room = (req.headers.room as string | undefined);
@@ -91,13 +142,15 @@ wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
         const roomIndex = await getRoomIndex(room);
 
         if (roomIndex > -1) {
-            setUserIntoRoom(roomIndex, username);
+            await setUserIntoRoom(roomIndex, username);
+
+            const roomFinded = await getRoom(room);
+
+            await redisPub.publish(room, JSON.stringify(roomFinded));
         } else {
-            rooms.push({ room, users: [ { username, role: 'admin' } ] });
+            rooms.push({ room, users: [ { username, role: 'admin' } ], status: 'hide' });
+            await setRooms(rooms);
         }
-        await setRooms(rooms);
-  
-        ws.send('Hi there, I am a WebSocket server. ROOM ->' + room);
     } else {
         if (room) {
             ws.send('Username not informed');
@@ -109,19 +162,41 @@ wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
 
     redisSub.subscribe(room || '', () => {
         redisSub.on('message', (channel, message) => {
-            if (channel === room) {
+            const disconnect = JSON.parse(message).disconnect;
+
+            if (disconnect) {
+                ws.send('Username not in room');
+                ws.close();
+            } else if (channel === room) {
                 ws.send(message);
             }
         });
     });
 
-    ws.on('message', async (vote: string) => {
+    ws.on('message', async (message: string) => {
+        const voteMessage: VoteMessage = JSON.parse(message);
+        let disconnect: boolean = false;
+
         if (room && username) {
-            await setVote(room, username, vote);
+            const userInRoom = await getUserInRoom(room, username);
+            if (userInRoom) {
+                if (voteMessage.action === Action.Vote) {
+                    await setVote(room, username, voteMessage.vote);
+                } else if (voteMessage.action === Action.Toggle && getUserRole(room, username)) {
+                    await toggleStatus(room);
+                } else if (voteMessage.action === Action.DeleteVotes && getUserRole(room, username)) {
+                    await deleteVotes(room);
+                } else if (voteMessage.action === Action.ClearRoom && getUserRole(room, username)) {
+                    await clearRoom(room);
+                }
+            } else {
+                disconnect = true;
+            }
+
             const roomFinded = await getRoom(room);
 
             if (roomFinded) {
-                await redisPub.publish(room, JSON.stringify(roomFinded));
+                await redisPub.publish(room, JSON.stringify(Object.assign({ disconnect }, roomFinded)));
             }
         } else {
             if (room) {
