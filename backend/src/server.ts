@@ -128,8 +128,9 @@ const clearRoom = async (room: string): Promise<void> => {
 };
 
 wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
-    let room = (req.headers.room as string | undefined);
-    const username = (req.headers.username as string | undefined);
+    console.log(req.headers['Sec-WebSocket-Protocol']);
+    let room = (req.headers['Sec-WebSocket-Protocol'] ? req.headers['Sec-WebSocket-Protocol'][0] as string | undefined : undefined);
+    const username = (req.headers['Sec-WebSocket-Protocol'] ? req.headers['Sec-WebSocket-Protocol'][1] as string | undefined : undefined);
 
     await init();
 
@@ -153,9 +154,9 @@ wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
         }
     } else {
         if (room) {
-            ws.send('Username not informed');
+            ws.send('{ "message": "Username not informed" }');
         } else {
-            ws.send('Room not informed.');
+            ws.send('{ "message": "Room not informed." }');
         }
         ws.close();
     }
@@ -200,9 +201,9 @@ wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
             }
         } else {
             if (room) {
-                ws.send('Username not informed');
+                ws.send('{ "message": "Username not informed" }');
             } else {
-                ws.send('Room not informed.');
+                ws.send('{ "message": "Room not informed." }');
             }
             ws.close();
         }

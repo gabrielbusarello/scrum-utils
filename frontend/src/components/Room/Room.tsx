@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Divider, Text } from '@dracula/dracula-ui';
 import EstimateButton from '../EstimateButton/EstimateButton';
 import './Room.scss';
 import ResultsTable from '../ResultsTable/ResultsTable';
+import { getWebsocket } from '../../services/WebSocket';
 
 const EstimateButtons = [
     '?',
@@ -25,6 +26,17 @@ export default function Room() {
             return (<EstimateButton color="green">{eb}</EstimateButton>)
         });
     }
+
+    useEffect(() => {
+        getWebsocket.subscribe({
+            next: () => {
+                debugger;
+            },
+            error: (error) => {
+                console.log(error);
+            }
+        });
+    }, []);
 
     return (
         <React.Fragment>
