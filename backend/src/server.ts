@@ -127,10 +127,8 @@ const clearRoom = async (room: string): Promise<void> => {
     await setRooms(rooms);
 };
 
-wss.on('connection', async (ws: WebSocket, req: http.IncomingMessage) => {
-    console.log(req.headers['Sec-WebSocket-Protocol']);
-    let room = (req.headers['Sec-WebSocket-Protocol'] ? req.headers['Sec-WebSocket-Protocol'][0] as string | undefined : undefined);
-    const username = (req.headers['Sec-WebSocket-Protocol'] ? req.headers['Sec-WebSocket-Protocol'][1] as string | undefined : undefined);
+wss.on('connection', async (ws: WebSocket) => {
+    let room: string, username: string;
 
     await init();
 
