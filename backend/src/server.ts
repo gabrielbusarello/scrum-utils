@@ -1,136 +1,147 @@
-import * as express from 'express';
+import express from 'express';
 import * as http from 'http';
 import * as WebSocket from 'ws';
 import * as Redis from 'ioredis';
 import { Room, Rooms } from './Room';
 import { User } from './User';
 import { Action, VoteMessage } from './VoteMessage';
+import { initializeApp, firestore, credential } from 'firebase-admin';
+import serviceAccount from '../scrum-dezan-firebase-adminsdk-nullr-a7b70d586d.json';
 
-const redis = new Redis('localhost');
-const redisSub = new Redis('localhost');
-const redisPub = new Redis('localhost');
+// const redis = new Redis('localhost');
+// const redisSub = new Redis('localhost');
+// const redisPub = new Redis('localhost');
+
+initializeApp({
+    credential: credential.cert(serviceAccount)
+});
+
+const db = firestore();
 
 const app = express();
 
 //initialize a simple http server
 const server = http.createServer(app);
 
+db.listCollections().then((list) => {
+    console.log(list);
+});
+
+const res = db.collection('rooms').doc('teste').set({
+    users: [],
+    status: 'hide'
+});
+
+res.then((res) => {
+    console.log(res);
+});
+
 //initialize the WebSocket server instance
 const wss = new WebSocket.Server({ server });
 
-const init = async () => {
-    const rooms = await redis.get('rooms');
+// const getRooms = async (): Promise<Rooms> => {
+//     const rooms = await redis.get('rooms');
 
-    if (!rooms) {
-        redis.set('rooms', '[]');
-    }
-};
+//     return rooms ? JSON.parse(rooms) : '';
+// }
 
-const getRooms = async (): Promise<Rooms> => {
-    const rooms = await redis.get('rooms');
+// const getRoom = async (room: string): Promise<Room | undefined> => {
+//     const rooms = await getRooms();
 
-    return rooms ? JSON.parse(rooms) : '';
-}
+//     return rooms.find((roomF) => roomF.room === room);
+// }
 
-const getRoom = async (room: string): Promise<Room | undefined> => {
-    const rooms = await getRooms();
+// const getRoomIndex = async (room: string): Promise<number> => {
+//     const rooms = await getRooms();
 
-    return rooms.find((roomF) => roomF.room === room);
-}
+//     return rooms.findIndex((roomF) => roomF.room === room);
+// }
 
-const getRoomIndex = async (room: string): Promise<number> => {
-    const rooms = await getRooms();
+// const getUserInRoom = async (room: string, username: string): Promise<boolean> => {
+//     const roomFinded = await getRoom(room);
 
-    return rooms.findIndex((roomF) => roomF.room === room);
-}
+//     console.log(!!roomFinded?.users.find(user => user.username === username));
+//     return !!roomFinded?.users.find(user => user.username === username);
+// }
 
-const getUserInRoom = async (room: string, username: string): Promise<boolean> => {
-    const roomFinded = await getRoom(room);
+// const getUserRole = async (room: string, username: string): Promise<boolean> => {
+//     const roomFinded = await getRoom(room);
 
-    console.log(!!roomFinded?.users.find(user => user.username === username));
-    return !!roomFinded?.users.find(user => user.username === username);
-}
+//     return !!roomFinded?.users.find(user => user.username === username && user.role === 'admin');
+// }
 
-const getUserRole = async (room: string, username: string): Promise<boolean> => {
-    const roomFinded = await getRoom(room);
+// const setRooms = async (rooms: Rooms): Promise<void> => {
+//     await redis.set('rooms', JSON.stringify(rooms));
+// }
 
-    return !!roomFinded?.users.find(user => user.username === username && user.role === 'admin');
-}
+// const setUserIntoRoom = async (roomIndex: number, username: string): Promise<void> => {
+//     let rooms = await getRooms();
 
-const setRooms = async (rooms: Rooms): Promise<void> => {
-    await redis.set('rooms', JSON.stringify(rooms));
-}
+//     if (!rooms[roomIndex].users.find((user) => user.username === username)) {
+//         rooms[roomIndex].users.push({ username, role: 'user' });
+//     }
 
-const setUserIntoRoom = async (roomIndex: number, username: string): Promise<void> => {
-    let rooms = await getRooms();
+//     await setRooms(rooms);
+// }
 
-    if (!rooms[roomIndex].users.find((user) => user.username === username)) {
-        rooms[roomIndex].users.push({ username, role: 'user' });
-    }
+// const setVote = async (room: string, username: string, vote: number): Promise<void> => {
+//     let rooms = await getRooms();
+//     const roomIndex = await getRoomIndex(room);
 
-    await setRooms(rooms);
-}
+//     if (roomIndex > -1) {
+//         rooms[roomIndex].users = rooms[roomIndex].users.map(user => {
+//             if (user.username === username) {
+//                 user.vote = vote;
+//             }
 
-const setVote = async (room: string, username: string, vote: number): Promise<void> => {
-    let rooms = await getRooms();
-    const roomIndex = await getRoomIndex(room);
+//             return user;
+//         });
 
-    if (roomIndex > -1) {
-        rooms[roomIndex].users = rooms[roomIndex].users.map(user => {
-            if (user.username === username) {
-                user.vote = vote;
-            }
+//         await setRooms(rooms);
+//     }
+// };
 
-            return user;
-        });
+// const toggleStatus = async (room: string): Promise<void> => {
+//     let rooms = await getRooms();
+//     const roomIndex = await getRoomIndex(room);
 
-        await setRooms(rooms);
-    }
-};
+//     if (roomIndex > -1) {
+//         rooms[roomIndex].status = rooms[roomIndex].status === 'hide' ? 'show' : 'hide';
+//     }
 
-const toggleStatus = async (room: string): Promise<void> => {
-    let rooms = await getRooms();
-    const roomIndex = await getRoomIndex(room);
+//     await setRooms(rooms);
+// };
 
-    if (roomIndex > -1) {
-        rooms[roomIndex].status = rooms[roomIndex].status === 'hide' ? 'show' : 'hide';
-    }
+// const deleteVotes = async (room: string): Promise<void> => {
+//     let rooms = await getRooms();
+//     const roomIndex = await getRoomIndex(room);
 
-    await setRooms(rooms);
-};
+//     if (roomIndex > -1) {
+//         rooms[roomIndex].users = rooms[roomIndex].users.map(user => {
+//             user.vote = null;
 
-const deleteVotes = async (room: string): Promise<void> => {
-    let rooms = await getRooms();
-    const roomIndex = await getRoomIndex(room);
+//             return user;
+//         });
 
-    if (roomIndex > -1) {
-        rooms[roomIndex].users = rooms[roomIndex].users.map(user => {
-            user.vote = null;
+//         rooms[roomIndex].status = 'hide';
+//     }
 
-            return user;
-        });
+//     await setRooms(rooms);
+// };
 
-        rooms[roomIndex].status = 'hide';
-    }
+// const clearRoom = async (room: string): Promise<void> => {
+//     let rooms = await getRooms();
+//     const roomIndex = await getRoomIndex(room);
 
-    await setRooms(rooms);
-};
+//     if (roomIndex > -1) {
+//         rooms[roomIndex].users = rooms[roomIndex].users.filter(user => user.role === 'admin');
+//     }
 
-const clearRoom = async (room: string): Promise<void> => {
-    let rooms = await getRooms();
-    const roomIndex = await getRoomIndex(room);
-
-    if (roomIndex > -1) {
-        rooms[roomIndex].users = rooms[roomIndex].users.filter(user => user.role === 'admin');
-    }
-
-    await setRooms(rooms);
-};
+//     await setRooms(rooms);
+// };
 
 wss.on('connection', async (ws: WebSocket) => {
     let room: string, username: string;
-
-    await init();
 
     if (room && username) {
         if (room === 'new') {
@@ -159,6 +170,7 @@ wss.on('connection', async (ws: WebSocket) => {
         ws.close();
     }
 
+    db.collection('room').doc(room)
     redisSub.subscribe(room || '', () => {
         redisSub.on('message', (channel, message) => {
             const disconnect = JSON.parse(message).disconnect;
