@@ -1,4 +1,6 @@
 import * as express from 'express';
+import * as session from 'express-session';
+import { v4 as uuidv4 } from 'uuid';
 import * as http from 'http';
 import * as WebSocket from 'ws';
 import * as Redis from 'ioredis';
@@ -11,12 +13,78 @@ const redisSub = new Redis('localhost');
 const redisPub = new Redis('localhost');
 
 const app = express();
+const map = new Map();
+
+//
+// We need the same instance of the session parser in express and
+// WebSocket server.
+//
+const sessionParser = session({
+    saveUninitialized: false,
+    secret: '$eCuRiTy',
+    resave: false
+});
+
+app.use(express.static('public'));
+app.use(sessionParser);
 
 //initialize a simple http server
 const server = http.createServer(app);
 
+declare module 'express-session' {
+    interface SessionData {
+        userId: string;
+        userName: string;
+        room: string;
+    }
+}
+
+app.post('/login', function (req, res) {
+    //
+    // "Log in" user and set userId to session.
+    //
+    const id = uuidv4();
+    const { username, room } = req.headers;
+
+    console.log(`Updating session for user ${id}`);
+
+    req.session.userId = id;
+    req.session.userName = username as string;
+    req.session.room = room as string;
+    res.send({ result: 'OK', message: 'Session updated' });
+});
+
+app.delete('/logout', function (request, response) {
+    const ws = map.get(request.session.userId);
+
+    console.log('Destroying session');
+    request.session.destroy(function () {
+        if (ws) ws.close();
+
+        response.send({ result: 'OK', message: 'Session destroyed' });
+    });
+});
+
 //initialize the WebSocket server instance
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({ clientTracking: false, noServer: true });
+  
+server.on('upgrade', function (request, socket, head) {
+    console.log('Parsing session from request...');
+
+    sessionParser(request, {} as any, () => {
+        if (!request.session.userId) {
+            socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+            socket.destroy();
+            return;
+        }
+
+        console.log('Session is parsed!');
+
+        wss.handleUpgrade(request, socket, head, function (ws) {
+            wss.emit('connection', ws, request);
+        });
+    });
+});
 
 const init = async () => {
     const rooms = await redis.get('rooms');
@@ -47,7 +115,6 @@ const getRoomIndex = async (room: string): Promise<number> => {
 const getUserInRoom = async (room: string, username: string): Promise<boolean> => {
     const roomFinded = await getRoom(room);
 
-    console.log(!!roomFinded?.users.find(user => user.username === username));
     return !!roomFinded?.users.find(user => user.username === username);
 }
 
@@ -127,8 +194,9 @@ const clearRoom = async (room: string): Promise<void> => {
     await setRooms(rooms);
 };
 
-wss.on('connection', async (ws: WebSocket) => {
-    let room: string, username: string;
+wss.on('connection', async (ws: WebSocket, req: { session: { room: string, userName: string } }) => {
+    let room = (req.session.room);
+    const username = (req.session.userName);
 
     await init();
 
