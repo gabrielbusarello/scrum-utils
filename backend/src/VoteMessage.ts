@@ -1,5 +1,4 @@
 export enum Action {
-    Authenticate,
     Vote,
     Toggle,
     DeleteVotes,
