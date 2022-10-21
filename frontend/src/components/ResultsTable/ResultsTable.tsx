@@ -12,9 +12,9 @@ const ResultsTable = ({ users, status }: { users: any[], status: boolean }) => {
             </thead>
             <tbody>
                 {
-                    users.map((user, index) => {
+                    users.map((user) => {
                         return (
-                            <tr key={index}>
+                            <tr key={user.key}>
                                 <td className="drac-text drac-text-white">{ user.name }</td>
                                 <td className="drac-text drac-text-white">
                                     { !status && <i className="pi pi-eye-slash"></i>}

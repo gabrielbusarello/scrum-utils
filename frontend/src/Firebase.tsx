@@ -1,7 +1,7 @@
 import { createContext, PropsWithChildren, useContext, useEffect, useState } from "react";
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, Auth, User } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getDatabase, Database } from "firebase/database";
 import { getAnalytics, Analytics } from "firebase/analytics";
 
 const firebaseConfig = {
@@ -17,7 +17,7 @@ const firebaseConfig = {
 interface IFirebaseContext {
     app: FirebaseApp;
     auth: Auth;
-    database: Firestore;
+    database: Database;
     analytics: Analytics;
     user?: User | null;
     started: boolean;
@@ -25,7 +25,7 @@ interface IFirebaseContext {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const database = getFirestore(app);
+const database = getDatabase(app);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 

@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import debounce from 'lodash/debounce';
 import { Button, Box, Input, Text } from 'dracula-ui';
 import { signInAnonymously, updateProfile } from "firebase/auth";
 import Modal from '../Modal';
@@ -21,7 +20,6 @@ const Login = ({ }: { }) => {
     const onChangeInput = useCallback((event: any) => {
         setUsername(event.target.value);
     }, []);
-    const debouncedOnChange = debounce(onChangeInput, 300);
 
     useEffect(() => {
         if (user) {
@@ -51,7 +49,8 @@ const Login = ({ }: { }) => {
                     borderSize="md"
                     placeholder="Username"
                     size="lg"
-                    onChange={debouncedOnChange}
+                    value={username}
+                    onChange={onChangeInput}
                 />
                 <Button color="purple" size="sm" onClick={onLogin}>Login!</Button>
             </div>

@@ -22,18 +22,19 @@ const PrivateRoute = ({ component: Component, user, ...props }: { component: any
 
 const Routes = () => {
     return (
-        <BrowserRouter>
-            <Switch>
-                {/* <Route exact path="/" component={Home} /> */}
-                <Route exact path="/" component={Home} />
-                <Route exact path="/room" component={Room} />
-                {/* <Route exact path="/:token" component={ProviderEdit} /> */}
-                {/* <Route path="/signup" component={() => <h1>SignUp</h1>} /> */}
-                {/* <PrivateRoute path="/app" component={Home} />
-                <PrivateRoute path="/inventory" component={InventoryContainer} /> */}
-                <Route path="*" component={() => <h1>Page not found</h1>} />
-            </Switch>
-        </BrowserRouter>
+        <Switch>
+            {/* <Route exact path="/" component={Home} /> */}
+            <Route exact path="/" component={Home} />
+            <Route exact path="/room">
+                <Redirect to="/" />
+            </Route>
+            <Route exact path="/room/:id" component={Room} />
+            {/* <Route exact path="/:token" component={ProviderEdit} /> */}
+            {/* <Route path="/signup" component={() => <h1>SignUp</h1>} /> */}
+            {/* <PrivateRoute path="/app" component={Home} />
+            <PrivateRoute path="/inventory" component={InventoryContainer} /> */}
+            <Route path="*" component={() => <h1>Page not found</h1>} />
+        </Switch>
     );
 }
 

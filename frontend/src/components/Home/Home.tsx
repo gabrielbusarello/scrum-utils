@@ -1,30 +1,42 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Card, Input, Text } from 'dracula-ui';
 import { useHistory } from 'react-router-dom';
-import { collection, doc, getDoc, onSnapshot } from "firebase/firestore";
+import { ref, set, push } from "firebase/database";
 import './Home.scss'
 import { useFirebase } from '../../Firebase';
 
 export default function Home() {
     const history = useHistory();
-    const { database, auth, user } = useFirebase();
-    const docRef = doc(database, "room", "146170");
-    const citiesRef = collection(database, "146170");
+    const { database, user } = useFirebase();
+    const [ room, setRoom ] = useState<string>('');
 
-    useEffect(() => {
-        console.log(user);
-        getDoc(docRef).then(resp => {
-            debugger;
-        });
-    }, [user]);
-
-    const createRoom = () => {
-        history.push('room');
-    };
+    const createRoom = useCallback(() => {
+        if (user) {
+            const roomCode = (+new Date()).toString(36).slice(-6);
+            const roomRef = ref(database, `rooms/${roomCode}`);
+            const userRef = ref(database, `users/${roomCode}/${user.uid}`);
+    
+            set(roomRef, {
+                allAdmin: true,
+                createdBy: user.uid,
+                status: false
+            }).then(() => {
+                set(userRef, {
+                    name: user.displayName,
+                    vote: null
+                });
+                history.push(`room/${roomCode}`);
+            });
+        }
+    }, [database, history, user]);
 
     const enterRoom = () => {
-        history.push('room');
+        history.push(`room/${room}`);
     }
+
+    const onChangeInput = useCallback((event: any) => {
+        setRoom(event.target.value);
+    }, []);
 
     return (
         <React.Fragment>
@@ -45,6 +57,8 @@ export default function Home() {
                     borderSize="md"
                     placeholder="Room ID"
                     size="lg"
+                    value={room}
+                    onChange={onChangeInput}
                 />
                 <Button color="animated" size="md" ml="md" onClick={enterRoom}>Enter in room!</Button>
             </div>
