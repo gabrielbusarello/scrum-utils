@@ -1,10 +1,22 @@
-import React from 'react';
-import { Button, Card, Input, Text } from '@dracula/dracula-ui';
+import React, { useEffect } from 'react';
+import { Button, Card, Input, Text } from 'dracula-ui';
 import { useHistory } from 'react-router-dom';
+import { collection, doc, getDoc, onSnapshot } from "firebase/firestore";
 import './Home.scss'
+import { useFirebase } from '../../Firebase';
 
 export default function Home() {
     const history = useHistory();
+    const { database, auth, user } = useFirebase();
+    const docRef = doc(database, "room", "146170");
+    const citiesRef = collection(database, "146170");
+
+    useEffect(() => {
+        console.log(user);
+        getDoc(docRef).then(resp => {
+            debugger;
+        });
+    }, [user]);
 
     const createRoom = () => {
         history.push('room');
