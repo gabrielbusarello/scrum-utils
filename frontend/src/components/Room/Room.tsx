@@ -85,7 +85,7 @@ export default function Room() {
     }, [id]);
 
     useEffect(() => {
-        if (user && users.length > 0) {
+        if (user && user.displayName && users.length > 0) {
             if (!users.find(currentUser => currentUser.key === user.uid)) {
                 const userRef = ref(database, `users/${id}/${user.uid}`);
 
