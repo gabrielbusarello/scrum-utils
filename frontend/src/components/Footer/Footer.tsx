@@ -1,5 +1,5 @@
 import React from 'react';
-import { Divider, Text } from '@dracula/dracula-ui';
+import { Divider, Text } from 'dracula-ui';
 
 export default function Footer() {
     return (
